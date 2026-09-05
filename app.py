@@ -66,8 +66,9 @@ st.markdown(
     .brand-icon { width: 74px; height: 74px; flex: 0 0 74px; border-radius: 50%; object-fit: cover;
         box-shadow: 0 5px 15px rgba(32, 48, 60, .18); }
     .brand-copy { min-width: 0; }
-    .app-name { color: var(--sunset); font-size: .78rem; font-weight: 900; letter-spacing: .08em;
-        margin-bottom: .22rem; }
+    .app-name { display: inline-flex; color: #a83d2a; background: #ffe5dc; border: 1px solid #f6baa9;
+        border-radius: 999px; padding: .22rem .58rem; font-size: .88rem; font-weight: 900;
+        letter-spacing: .035em; margin-bottom: .32rem; white-space: nowrap; }
     .brand-title { color: var(--ink); font-size: clamp(2rem, 8vw, 2.75rem); font-weight: 850;
         letter-spacing: -.045em; line-height: 1.08; }
     .brand-tagline { color: var(--pacific); font-size: .95rem; font-weight: 750; font-style: italic; letter-spacing: .02em; margin-bottom: .3rem; }
@@ -120,6 +121,7 @@ st.markdown(
         h1 { font-size: 2.05rem !important; }
         .brand-header { gap: .65rem; }
         .brand-icon { width: 58px; height: 58px; flex-basis: 58px; }
+        .app-name { font-size: .82rem; padding: .18rem .48rem; margin-bottom: .25rem; }
         .jack-avatar { width: 54px; height: 54px; flex-basis: 54px; }
         .prompt-card { padding: 1.2rem; border-radius: 17px; }
         .answer-card, .jack-card { padding: .9rem 1rem; }
@@ -145,7 +147,7 @@ answer_key = f"answer_{st.session_state.answer_version}"
 
 st.markdown(
     f'<div class="brand-header"><img class="brand-icon" src="{jack_icon_uri}" alt="Jack">'
-    f'<div class="brand-copy"><div class="app-name">JACKの英語ジャッジ</div>'
+    f'<div class="brand-copy"><div class="app-name">Jackの英語ジャッジ</div>'
     f'<div class="brand-title">その英語、いい感じ？</div></div></div>',
     unsafe_allow_html=True,
 )
