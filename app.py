@@ -117,7 +117,8 @@ st.markdown(
     div.stFormSubmitButton > button:hover { background: #d9563e; color: white; border-color: #d9563e; }
     div[data-testid="stTextInput"] input { min-height: 3.1rem; border-radius: 12px; font-size: 1rem; }
     @media (max-width: 600px) {
-        .block-container { padding: 1.15rem 1rem 3rem; }
+        /* Safari/Streamlit's mobile toolbar overlaps the top of the app. */
+        .block-container { padding: 3.25rem 1rem 3rem; }
         h1 { font-size: 2.05rem !important; }
         .brand-header { gap: .55rem; align-items: center; }
         .brand-icon { width: 52px; height: 52px; flex-basis: 52px; }
