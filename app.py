@@ -244,8 +244,8 @@ if evaluation:
     )
     st.markdown('<div class="compare-label">ほかの言い方と比べる</div>', unsafe_allow_html=True)
     st.markdown(
-        f'<div class="answer-card">🔰 <b>英語サバイバー</b>'
-        f'<span class="card-tagline">ギリ伝われば勝ち。</span>{question["survival"]}</div>',
+        f'<div class="answer-card">🔰 <b>これでもイケる英語</b>'
+        f'<span class="card-tagline">ちゃんと伝わる。全然アリ。</span>{question["survival"]}</div>',
         unsafe_allow_html=True,
     )
     st.markdown(
