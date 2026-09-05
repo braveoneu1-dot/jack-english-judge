@@ -65,10 +65,10 @@ st.markdown(
     .brand-header { display: flex; align-items: center; gap: .9rem; margin: .2rem 0 .1rem; }
     .brand-icon { width: 74px; height: 74px; flex: 0 0 74px; border-radius: 50%; object-fit: cover;
         box-shadow: 0 5px 15px rgba(32, 48, 60, .18); }
-    .brand-copy { min-width: 0; }
+    .brand-copy { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; overflow: visible; }
     .app-name { display: inline-flex; color: #a83d2a; background: #ffe5dc; border: 1px solid #f6baa9;
-        border-radius: 999px; padding: .22rem .58rem; font-size: .88rem; font-weight: 900;
-        letter-spacing: .035em; margin-bottom: .32rem; white-space: nowrap; }
+        border-radius: 999px; padding: .22rem .58rem; font-size: .88rem; line-height: 1.3; font-weight: 900;
+        letter-spacing: .035em; margin-bottom: .32rem; white-space: nowrap; position: relative; z-index: 1; }
     .brand-title { color: var(--ink); font-size: clamp(2rem, 8vw, 2.75rem); font-weight: 850;
         letter-spacing: -.045em; line-height: 1.08; }
     .brand-tagline { color: var(--pacific); font-size: .95rem; font-weight: 750; font-style: italic; letter-spacing: .02em; margin-bottom: .3rem; }
@@ -119,9 +119,10 @@ st.markdown(
     @media (max-width: 600px) {
         .block-container { padding: 1.15rem 1rem 3rem; }
         h1 { font-size: 2.05rem !important; }
-        .brand-header { gap: .65rem; }
-        .brand-icon { width: 58px; height: 58px; flex-basis: 58px; }
-        .app-name { font-size: .82rem; padding: .18rem .48rem; margin-bottom: .25rem; }
+        .brand-header { gap: .55rem; align-items: center; }
+        .brand-icon { width: 52px; height: 52px; flex-basis: 52px; }
+        .brand-title { font-size: 1.65rem; line-height: 1.08; white-space: nowrap; }
+        .app-name { font-size: .74rem; line-height: 1.3; padding: .16rem .42rem; margin-bottom: .28rem; }
         .jack-avatar { width: 54px; height: 54px; flex-basis: 54px; }
         .prompt-card { padding: 1.2rem; border-radius: 17px; }
         .answer-card, .jack-card { padding: .9rem 1rem; }
