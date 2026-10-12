@@ -5,3 +5,26 @@ __pycache__/
 .DS_Store
 sources/
 AGENTS.md
+
+# Local secrets (keep the placeholder example tracked)
+.env.*
+!.env.example
+.streamlit/secrets.toml
+*.pem
+*.key
+
+# Python environments and generated files
+.venv/
+venv/
+env/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local logs and editor files
+*.log
+.vscode/
+.idea/

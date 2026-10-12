@@ -2,6 +2,10 @@
 
 *Keep it simple. Keep it real.*
 
+**Active project:** the Japanese-language beginner English quiz. This is separate from Jack American Mode, the advanced English-only app.
+
+Deployment: Streamlit, with `app.py` as the entry point. The live app URL has not been verified in this repository; use the Streamlit account to confirm it.
+
 A beginner-friendly Streamlit quiz for learning simple, natural conversational English.
 
 ## What it does
@@ -9,7 +13,7 @@ A beginner-friendly Streamlit quiz for learning simple, natural conversational E
 - Chooses one of 30 Japanese prompts at random
 - Accepts any English answer (not just an exact match)
 - Uses AI to score real conversational usefulness from 0–10
-- Shows Survival English, Exam-English Monster, and Jack’s Pick
+- Shows これでもイケる英語, 受験英語モンスター, and Jack’s Pick
 - Moves to a different random question with one tap
 - Uses a narrow, responsive layout that works well in a mobile browser
 - Uses Claude for every submitted answer
@@ -64,7 +68,7 @@ Jack’s Pick is a reference, not an exact-match answer key. Other genuinely nat
    streamlit run app.py
    ```
 
-Streamlit will show a local address. Open it in a browser. When the app is later deployed, the same responsive interface can be opened from an iPhone without making a native iOS app yet.
+Streamlit will show a local address. Open it in a browser. The same responsive interface can be opened from an iPhone after deployment; a native iOS app is not required.
 
 ## Files
 
@@ -73,3 +77,23 @@ Streamlit will show a local address. Open it in a browser. When the app is later
 - `evaluator.py` — Claude evaluation and response structure
 
 The API key stays outside the source code. Do not commit `.env` or `.streamlit/secrets.toml`.
+
+## Development and credentials
+
+`quiz.py` selects the next question; `assets/` contains the channel icon; `test_app.py` contains automated checks. Run them with `python -m unittest test_app` after installing dependencies.
+
+`.env.example` is a placeholder reference. The evaluator reads an environment variable or Streamlit secrets; it does not automatically load `.env`. A valid Anthropic key and API credits are required for AI scoring. Keep real keys outside GitHub.
+
+The default branch is `main`. Confirm the deployed commit in Streamlit before assuming the live app matches the newest GitHub commit.
+
+## Yuichi's app directory
+
+| App | Repository | Where it runs |
+| --- | --- | --- |
+| Yuichi AI Terminal | [yuichi-ai-terminal](https://github.com/braveoneu1-dot/yuichi-ai-terminal) | Streamlit |
+| Household Finance / Harbor | Planned private backup: `household-finance-app` | ChatGPT Sites |
+| Jackの英語ジャッジ | [jack-english-judge](https://github.com/braveoneu1-dot/jack-english-judge) | Streamlit |
+| Jack American Mode | Planned private backup: `jack-american-mode` | ChatGPT Sites |
+
+The two planned backups are not confirmed GitHub repositories yet. Sites keeps its own source and saved versions; those are separate from GitHub.
+
