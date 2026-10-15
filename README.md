@@ -91,9 +91,9 @@ The default branch is `main`. Confirm the deployed commit in Streamlit before as
 | App | Repository | Where it runs |
 | --- | --- | --- |
 | Yuichi AI Terminal | [yuichi-ai-terminal](https://github.com/braveoneu1-dot/yuichi-ai-terminal) | Streamlit |
-| Household Finance / Harbor | Planned private backup: `household-finance-app` | ChatGPT Sites |
+| Household Finance / Harbor | [household-finance-app](https://github.com/braveoneu1-dot/household-finance-app) — private; source import pending | ChatGPT Sites |
 | Jackの英語ジャッジ | [jack-english-judge](https://github.com/braveoneu1-dot/jack-english-judge) | Streamlit |
-| Jack American Mode | Planned private backup: `jack-american-mode` | ChatGPT Sites |
+| Jack American Mode | [jack-american-mode](https://github.com/braveoneu1-dot/jack-american-mode) — private; source import pending | ChatGPT Sites |
 
-The two planned backups are not confirmed GitHub repositories yet. Sites keeps its own source and saved versions; those are separate from GitHub.
+Verified October 15, 2026: both private repositories exist, but currently contain only placeholder documentation. Their application source has not yet been imported. Sites keeps its own source and saved versions; those are separate from GitHub.
 
