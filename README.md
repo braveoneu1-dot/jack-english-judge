@@ -2,9 +2,15 @@
 
 *Keep it simple. Keep it real.*
 
+## 公開アプリ
+
+**▶ [Jackの英語ジャッジを開く](https://jack-english-judge-by-jack.streamlit.app)**
+
+YouTubeの概要欄や固定コメントには、上のStreamlit URLを使用してください。GitHubのURLはソースコードを見るためのページで、視聴者がクイズを使うためのURLとは別です。
+
 **Active project:** the Japanese-language beginner English quiz. This is separate from Jack American Mode, the advanced English-only app.
 
-Deployment: Streamlit, with `app.py` as the entry point. The live app URL has not been verified in this repository; use the Streamlit account to confirm it.
+Deployment: [Streamlit](https://jack-english-judge-by-jack.streamlit.app), with `app.py` as the entry point.
 
 A beginner-friendly Streamlit quiz for learning simple, natural conversational English.
 
@@ -88,12 +94,11 @@ The default branch is `main`. Confirm the deployed commit in Streamlit before as
 
 ## Yuichi's app directory
 
-| App | Repository | Where it runs |
+| App | Repository | Public app |
 | --- | --- | --- |
 | Yuichi AI Terminal | [yuichi-ai-terminal](https://github.com/braveoneu1-dot/yuichi-ai-terminal) | Streamlit |
 | Household Finance / Harbor | [household-finance-app](https://github.com/braveoneu1-dot/household-finance-app) — private; source import pending | ChatGPT Sites |
-| Jackの英語ジャッジ | [jack-english-judge](https://github.com/braveoneu1-dot/jack-english-judge) | Streamlit |
-| Jack American Mode | [jack-american-mode](https://github.com/braveoneu1-dot/jack-american-mode) — private; source import pending | ChatGPT Sites |
+| Jackの英語ジャッジ | [jack-english-judge](https://github.com/braveoneu1-dot/jack-english-judge) | [アプリを開く](https://jack-english-judge-by-jack.streamlit.app) |
+| Jack American Mode | [jack-american-mode](https://github.com/braveoneu1-dot/jack-american-mode) — private; source import pending | [アプリを開く](https://jack-american-mode.jackaudio.chatgpt.site) |
 
 Verified October 15, 2026: both private repositories exist, but currently contain only placeholder documentation. Their application source has not yet been imported. Sites keeps its own source and saved versions; those are separate from GitHub.
-
