@@ -1,7 +1,9 @@
 import os
 import re
+import json
+from urllib.request import Request, urlopen
 
-from anthropic import Anthropic
+from pydantic import ValidationError
 from pydantic import BaseModel, Field
 
 
@@ -82,7 +84,7 @@ def evaluate_answer_locally(question: dict, user_answer: str) -> Evaluation:
         interpreted_answer=interpreted_answer,
         ignored_hesitation=ignored_hesitation,
         natural_version=question["jacks_pick"],
-        why_ja="テストモードでは固定ルールで表示を確認できます。本番判定を試すときだけClaude APIを有効にしてください。",
+        why_ja="テストモードでは固定ルールで表示を確認できます。本番判定を試すときだけAI APIを有効にしてください。",
     )
 
 
@@ -130,12 +132,9 @@ Judge the expression itself, not whether it exactly matches Jack's Pick. Return 
 """
 
 
-def evaluate_answer(question: dict, user_answer: str) -> Evaluation:
-    client = Anthropic(api_key=_api_key())
-    model = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5-20251001")
-
+def _evaluation_prompt(question: dict, user_answer: str) -> str:
     context = question.get("context_ja", "No additional context provided")
-    prompt = f"""Japanese prompt: {question['japanese']}
+    return f"""Japanese prompt: {question['japanese']}
 Situation/context: {context}
 User's answer: {user_answer}
 
@@ -146,17 +145,97 @@ Jack's Pick: {question['jacks_pick']}
 
 Evaluate the user's answer according to the product philosophy."""
 
+
+def _evaluate_with_deepseek(question: dict, user_answer: str, api_key: str) -> Evaluation:
+    model = _setting("DEEPSEEK_MODEL") or "deepseek-v4-pro"
+    deepseek_system_prompt = (
+        SYSTEM_PROMPT
+        + "\nReturn only one valid JSON object matching this JSON schema:\n"
+        + json.dumps(Evaluation.model_json_schema(), ensure_ascii=False)
+    )
+    body = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": deepseek_system_prompt},
+            {"role": "user", "content": _evaluation_prompt(question, user_answer)},
+        ],
+        "response_format": {"type": "json_object"},
+        "thinking": {"type": "disabled"},
+        "temperature": 0.2,
+        "max_tokens": 900,
+    }
+    request = Request(
+        "https://api.deepseek.com/chat/completions",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        data=json.dumps(body).encode("utf-8"),
+        method="POST",
+    )
+    with urlopen(request, timeout=45) as response:
+        payload = json.loads(response.read().decode("utf-8"))
+    content = payload["choices"][0]["message"]["content"].strip()
+    if content.startswith("```"):
+        content = re.sub(r"^```(?:json)?\s*|\s*```$", "", content, flags=re.IGNORECASE)
+
+    try:
+        return Evaluation.model_validate(json.loads(content))
+    except (json.JSONDecodeError, ValidationError, KeyError, TypeError) as exc:
+        raise RuntimeError("DeepSeek returned an invalid evaluation response.") from exc
+
+
+def _evaluate_with_claude(question: dict, user_answer: str, api_key: str) -> Evaluation:
+    from anthropic import Anthropic
+
+    client = Anthropic(api_key=api_key)
+    model = _setting("ANTHROPIC_MODEL") or "claude-haiku-4-5-20251001"
+
     response = client.messages.parse(
         model=model,
         max_tokens=600,
         system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": prompt}],
+        messages=[{"role": "user", "content": _evaluation_prompt(question, user_answer)}],
         output_format=Evaluation,
     )
     if response.parsed_output is None:
         raise RuntimeError("The AI response could not be read. Please try again.")
+    return response.parsed_output
 
-    result = response.parsed_output
+
+def evaluate_answer(question: dict, user_answer: str) -> Evaluation:
+    """Use DeepSeek first, with Claude as an automatic safety fallback."""
+    deepseek_key = _setting("DEEPSEEK_API_KEY")
+    anthropic_key = _setting("ANTHROPIC_API_KEY")
+    preferred = (_setting("AI_PROVIDER") or "deepseek").strip().lower()
+
+    providers = (
+        (("anthropic", anthropic_key), ("deepseek", deepseek_key))
+        if preferred == "anthropic"
+        else (("deepseek", deepseek_key), ("anthropic", anthropic_key))
+    )
+    errors = []
+    result = None
+    for provider, key in providers:
+        if not key:
+            continue
+        try:
+            if provider == "deepseek":
+                result = _evaluate_with_deepseek(question, user_answer, key)
+            else:
+                result = _evaluate_with_claude(question, user_answer, key)
+            break
+        except Exception as exc:
+            errors.append(f"{provider}: {exc}")
+
+    if result is None:
+        if not deepseek_key and not anthropic_key:
+            raise RuntimeError(
+                "DEEPSEEK_API_KEY または ANTHROPIC_API_KEY が未設定です。"
+                "README のセットアップ手順を確認してください。"
+            )
+        raise RuntimeError("AI evaluation failed: " + " | ".join(errors))
+
     same_expression = normalize_for_comparison(
         result.natural_version
     ) == normalize_for_comparison(result.interpreted_answer)
@@ -170,20 +249,16 @@ Evaluate the user's answer according to the product philosophy."""
     return correct_japanese_copy(result)
 
 
-def _api_key() -> str:
-    key = os.getenv("ANTHROPIC_API_KEY")
-    if key:
-        return key
+def _setting(name: str) -> str | None:
+    value = os.getenv(name)
+    if value:
+        return value
 
     try:
         import streamlit as st
 
-        key = st.secrets.get("ANTHROPIC_API_KEY")
-    except (FileNotFoundError, KeyError):
-        key = None
+        value = st.secrets.get(name)
+    except (FileNotFoundError, KeyError, RuntimeError):
+        value = None
+    return str(value) if value else None
 
-    if not key:
-        raise RuntimeError(
-            "ANTHROPIC_API_KEY が未設定です。README のセットアップ手順を確認してください。"
-        )
-    return str(key)
