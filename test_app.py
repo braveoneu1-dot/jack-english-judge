@@ -1,10 +1,12 @@
 import json
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from quiz import choose_question
 from evaluator import (
     Evaluation,
+    evaluate_answer,
     correct_japanese_copy,
     evaluate_answer_locally,
     normalize_for_comparison,
@@ -86,6 +88,64 @@ class QuestionDatasetTests(unittest.TestCase):
             corrected.why_ja,
         )))
 
+    @patch("evaluator._setting")
+    @patch("evaluator._evaluate_with_claude")
+    @patch("evaluator._evaluate_with_deepseek")
+    def test_deepseek_is_primary_when_both_keys_exist(
+        self, deepseek_evaluate, claude_evaluate, setting
+    ):
+        setting.side_effect = lambda name: {
+            "DEEPSEEK_API_KEY": "deepseek-test-key",
+            "ANTHROPIC_API_KEY": "anthropic-test-key",
+            "AI_PROVIDER": "deepseek",
+        }.get(name)
+        deepseek_evaluate.return_value = Evaluation(
+            naturalness_score=10,
+            verdict="とても自然",
+            needs_improvement=False,
+            positive_feedback_ja="自然な短い表現です。",
+            improvement_feedback_ja="修正は不要です。",
+            interpreted_answer="I'm hungry.",
+            ignored_hesitation=[],
+            natural_version="I'm hungry.",
+            why_ja="自然な日常表現です。",
+        )
+
+        evaluate_answer(self.questions[7], "I'm hungry.")
+
+        deepseek_evaluate.assert_called_once()
+        claude_evaluate.assert_not_called()
+
+    @patch("evaluator._setting")
+    @patch("evaluator._evaluate_with_claude")
+    @patch("evaluator._evaluate_with_deepseek")
+    def test_claude_is_used_when_deepseek_fails(
+        self, deepseek_evaluate, claude_evaluate, setting
+    ):
+        setting.side_effect = lambda name: {
+            "DEEPSEEK_API_KEY": "deepseek-test-key",
+            "ANTHROPIC_API_KEY": "anthropic-test-key",
+            "AI_PROVIDER": "deepseek",
+        }.get(name)
+        deepseek_evaluate.side_effect = RuntimeError("temporary failure")
+        claude_evaluate.return_value = Evaluation(
+            naturalness_score=10,
+            verdict="とても自然",
+            needs_improvement=False,
+            positive_feedback_ja="自然な短い表現です。",
+            improvement_feedback_ja="修正は不要です。",
+            interpreted_answer="I'm hungry.",
+            ignored_hesitation=[],
+            natural_version="I'm hungry.",
+            why_ja="自然な日常表現です。",
+        )
+
+        evaluate_answer(self.questions[7], "I'm hungry.")
+
+        deepseek_evaluate.assert_called_once()
+        claude_evaluate.assert_called_once()
+
 
 if __name__ == "__main__":
     unittest.main()
+
