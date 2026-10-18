@@ -22,7 +22,7 @@ A beginner-friendly Streamlit quiz for learning simple, natural conversational E
 - Shows これでもイケる英語, 受験英語モンスター, and Jack’s Pick
 - Moves to a different random question with one tap
 - Uses a narrow, responsive layout that works well in a mobile browser
-- Uses Claude for every submitted answer
+- Uses DeepSeek V4 Pro for submitted answers, with Claude as an automatic fallback
 - Supports phone keyboard dictation while keeping the transcript visible and editable
 
 ## Voice typing
@@ -56,17 +56,22 @@ Jack’s Pick is a reference, not an exact-match answer key. Other genuinely nat
    pip install -r requirements.txt
    ```
 
-4. Add your API key. The simplest local option is:
+4. Add your DeepSeek API key. The simplest local option is:
 
    ```bash
-   export ANTHROPIC_API_KEY="your_api_key_here"
+   export DEEPSEEK_API_KEY="your_deepseek_api_key_here"
    ```
 
    Alternatively, create `.streamlit/secrets.toml`:
 
    ```toml
-   ANTHROPIC_API_KEY = "your_api_key_here"
+   DEEPSEEK_API_KEY = "your_deepseek_api_key_here"
+   DEEPSEEK_MODEL = "deepseek-v4-pro"
    ```
+
+   To keep Claude as a fallback, add `ANTHROPIC_API_KEY` to the same environment
+   or Streamlit Secrets. Set `AI_PROVIDER = "anthropic"` only when you want Claude
+   to run first and DeepSeek second.
 
 5. Start the app:
 
@@ -80,7 +85,7 @@ Streamlit will show a local address. Open it in a browser. The same responsive i
 
 - `questions.json` — the agreed 30-question dataset
 - `app.py` — screen and quiz flow
-- `evaluator.py` — Claude evaluation and response structure
+- `evaluator.py` — DeepSeek-first evaluation, Claude fallback, and response structure
 
 The API key stays outside the source code. Do not commit `.env` or `.streamlit/secrets.toml`.
 
@@ -88,7 +93,7 @@ The API key stays outside the source code. Do not commit `.env` or `.streamlit/s
 
 `quiz.py` selects the next question; `assets/` contains the channel icon; `test_app.py` contains automated checks. Run them with `python -m unittest test_app` after installing dependencies.
 
-`.env.example` is a placeholder reference. The evaluator reads an environment variable or Streamlit secrets; it does not automatically load `.env`. A valid Anthropic key and API credits are required for AI scoring. Keep real keys outside GitHub.
+`.env.example` is a placeholder reference. The evaluator reads environment variables or Streamlit Secrets; it does not automatically load `.env`. A valid DeepSeek key and API credits are required for the default AI scoring path. Claude is used only as a fallback when its key is also configured. Keep real keys outside GitHub.
 
 The default branch is `main`. Confirm the deployed commit in Streamlit before assuming the live app matches the newest GitHub commit.
 
@@ -102,3 +107,4 @@ The default branch is `main`. Confirm the deployed commit in Streamlit before as
 | Jack American Mode | [jack-american-mode](https://github.com/braveoneu1-dot/jack-american-mode) — private; source import pending | [アプリを開く](https://jack-american-mode.jackaudio.chatgpt.site) |
 
 Verified October 15, 2026: both private repositories exist, but currently contain only placeholder documentation. Their application source has not yet been imported. Sites keeps its own source and saved versions; those are separate from GitHub.
+
