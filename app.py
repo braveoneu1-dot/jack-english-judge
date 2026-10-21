@@ -68,20 +68,25 @@ def install_app_icon() -> None:
         """
         <script>
         (() => {
-          const doc = window.parent.document;
-          const iconUrl = new URL("app/static/judge-app-icon.png?v=3", doc.baseURI).href;
-          const install = (rel, sizes) => {
-            let link = doc.querySelector('link[rel="' + rel + '"]');
-            if (!link) {
-              link = doc.createElement("link");
-              link.rel = rel;
-              doc.head.appendChild(link);
-            }
-            if (sizes) link.sizes = sizes;
-            link.href = iconUrl;
-          };
-          install("apple-touch-icon", "180x180");
-          install("icon", "512x512");
+          const iconUrl = new URL("/app/static/judge-app-icon.png?v=3", window.parent.location.origin).href;
+          const documents = [window.parent.document];
+          try {
+            if (window.top.document !== window.parent.document) documents.push(window.top.document);
+          } catch (_) {}
+          documents.forEach((doc) => {
+            const install = (rel, sizes) => {
+              let link = doc.querySelector('link[rel="' + rel + '"]');
+              if (!link) {
+                link = doc.createElement("link");
+                link.rel = rel;
+                doc.head.appendChild(link);
+              }
+              if (sizes) link.sizes = sizes;
+              link.href = iconUrl;
+            };
+            install("apple-touch-icon", "180x180");
+            install("icon", "512x512");
+          });
         })();
         </script>
         """,
