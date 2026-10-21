@@ -68,7 +68,7 @@ def install_app_icon() -> None:
         """
         <script>
         (() => {
-          const iconUrl = new URL("/app/static/judge-app-icon.png?v=3", window.parent.location.origin).href;
+          const iconUrl = new URL("app/static/judge-app-icon.png?v=3", window.parent.document.baseURI).href;
           const documents = [window.parent.document];
           try {
             if (window.top.document !== window.parent.document) documents.push(window.top.document);
