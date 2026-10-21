@@ -224,6 +224,8 @@ st.markdown(
     .profile-cell:first-child { background: linear-gradient(145deg, #173c5a, #225f7e); border-color: #173c5a; }
     .profile-cell:first-child .profile-kicker { color: #a9d8eb !important; }
     .profile-cell:first-child .profile-value { color: #fff9ed !important; letter-spacing: .05em; }
+    .profile-reset-note { margin: .25rem 0 .75rem; padding: .75rem .85rem; border-radius: 12px;
+        background: #eef6fa; color: #506777; font-size: .78rem; line-height: 1.5; border: 1px solid #d3e5ed; }
     .prompt-card { padding: 1.55rem; border-radius: 22px; background: linear-gradient(145deg, #eaf7fb, #dff1f7);
         color: var(--ink); margin: 1rem 0 1.2rem; border: 1px solid #b9dce8; box-shadow: 0 10px 25px rgba(35, 123, 165, .10); }
     .prompt-label { font-size: .85rem; font-weight: 800; color: #286986; margin-bottom: .4rem; }
@@ -329,14 +331,48 @@ st.markdown(
 with st.expander("🔐 貴方のJack ID"):
     st.caption("この端末だけの匿名IDです。回答数・平均点・ベストスコアをブラウザに保存します。")
     st.code(profile_id, language=None)
-    if st.button("このIDの進捗をリセット", type="secondary"):
-        st.session_state.progress_attempts = 0
-        st.session_state.progress_score_sum = 0
-        st.session_state.progress_best = 0
-        st.query_params["p_attempts"] = "0"
-        st.query_params["p_score_sum"] = "0"
-        st.query_params["p_best"] = "0"
-        st.rerun()
+    st.markdown(
+        '<div class="profile-reset-note">進捗だけを消すか、完全に新しい匿名IDでやり直すかを選べます。</div>',
+        unsafe_allow_html=True,
+    )
+    reset_column, new_id_column = st.columns(2)
+    with reset_column:
+        if st.button("進捗をリセット", type="secondary", use_container_width=True):
+            st.session_state.progress_attempts = 0
+            st.session_state.progress_score_sum = 0
+            st.session_state.progress_best = 0
+            st.query_params["p_attempts"] = "0"
+            st.query_params["p_score_sum"] = "0"
+            st.query_params["p_best"] = "0"
+            st.rerun()
+    with new_id_column:
+        if st.button("新しいIDを作る", type="secondary", use_container_width=True):
+            old_profile_id = profile_id
+            new_profile_id = f"EJ-{secrets.token_hex(6).upper()}"
+            st.session_state.progress_profile_id = new_profile_id
+            st.session_state.progress_attempts = 0
+            st.session_state.progress_score_sum = 0
+            st.session_state.progress_best = 0
+            st.query_params.clear()
+            st.query_params["jack_id"] = new_profile_id
+            components.html(
+                f"""
+                <script>
+                (() => {{
+                  const message = {{
+                    type: "jack-judge-new-profile",
+                    oldProfileId: {json.dumps(old_profile_id)},
+                    profileId: {json.dumps(new_profile_id)}
+                  }};
+                  try {{ window.parent.postMessage(message, "*"); }} catch (_) {{}}
+                  try {{ window.top.postMessage(message, "*"); }} catch (_) {{}}
+                }})();
+                </script>
+                """,
+                height=0,
+                width=0,
+            )
+            st.success("新しいJack IDを作成しました。進捗は0から始まります。")
 
 context_html = ""
 if question.get("context_ja"):
