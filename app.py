@@ -1,9 +1,11 @@
 import json
 import base64
+import re
 from html import escape
 from pathlib import Path
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 from evaluator import evaluate_answer
 from quiz import choose_question
@@ -11,6 +13,10 @@ from quiz import choose_question
 
 APP_DIR = Path(__file__).parent
 JACK_ICON_PATH = APP_DIR / "assets" / "jack-channel-icon.png"
+APP_ICON_PATH = APP_DIR / "static" / "judge-app-icon.png"
+PROFILE_ID_PATTERN = re.compile(r"^EJ-[A-F0-9]{12}$")
+PROFILE_STORAGE_KEY = "jack_english_judge_profile_v1"
+PROGRESS_STORAGE_PREFIX = "jack_english_judge_progress_v1:"
 
 
 def image_data_uri(path: Path) -> str:
@@ -48,11 +54,136 @@ def reset_for_next_question(questions: list[dict]) -> None:
     st.session_state.answer_version += 1
 
 
+def safe_progress_int(name: str) -> int:
+    try:
+        return max(0, int(st.query_params.get(name, "0")))
+    except (TypeError, ValueError):
+        return 0
+
+
+def install_app_icon() -> None:
+    """Install a real favicon and iOS home-screen icon in Streamlit's parent page."""
+    components.html(
+        """
+        <script>
+        (() => {
+          const doc = window.parent.document;
+          const iconUrl = new URL("app/static/judge-app-icon.png?v=3", doc.baseURI).href;
+          const install = (rel, sizes) => {
+            let link = doc.querySelector('link[rel="' + rel + '"]');
+            if (!link) {
+              link = doc.createElement("link");
+              link.rel = rel;
+              doc.head.appendChild(link);
+            }
+            if (sizes) link.sizes = sizes;
+            link.href = iconUrl;
+          };
+          install("apple-touch-icon", "180x180");
+          install("icon", "512x512");
+        })();
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
+
+
+def ensure_profile_id() -> str:
+    """Restore or create a private browser profile before showing the app."""
+    profile_id = str(st.query_params.get("jack_id", "")).strip().upper()
+    if PROFILE_ID_PATTERN.fullmatch(profile_id):
+        return profile_id
+
+    components.html(
+        f"""
+        <script>
+        (() => {{
+          const ID_KEY = {json.dumps(PROFILE_STORAGE_KEY)};
+          const PROGRESS_PREFIX = {json.dumps(PROGRESS_STORAGE_PREFIX)};
+          const valid = (value) => /^EJ-[A-F0-9]{{12}}$/.test(value || "");
+          const randomId = () => {{
+            const bytes = new Uint8Array(6);
+            crypto.getRandomValues(bytes);
+            return "EJ-" + Array.from(bytes, b => b.toString(16).padStart(2, "0"))
+              .join("").toUpperCase();
+          }};
+          let saved = "";
+          try {{ saved = localStorage.getItem(ID_KEY) || ""; }} catch (_) {{}}
+          const id = valid(saved) ? saved : randomId();
+          try {{ localStorage.setItem(ID_KEY, id); }} catch (_) {{}}
+          const url = new URL(window.parent.location.href);
+          url.searchParams.set("jack_id", id);
+          let progress = {{}};
+          try {{
+            progress = JSON.parse(localStorage.getItem(PROGRESS_PREFIX + id) || "{{}}");
+          }} catch (_) {{}}
+          url.searchParams.set("p_attempts", Math.max(0, Number(progress.attempts) || 0));
+          url.searchParams.set("p_score_sum", Math.max(0, Number(progress.scoreSum) || 0));
+          url.searchParams.set("p_best", Math.max(0, Number(progress.best) || 0));
+          window.parent.location.replace(url.toString());
+        }})();
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
+    st.info("貴方専用のJack IDを準備しています…")
+    st.stop()
+
+
+def sync_profile_progress(profile_id: str, attempts: int, score_sum: int, best: int) -> None:
+    payload = {
+        "profileId": profile_id,
+        "attempts": attempts,
+        "scoreSum": score_sum,
+        "best": best,
+    }
+    components.html(
+        f"""
+        <script>
+        (() => {{
+          const payload = {json.dumps(payload)};
+          const ID_KEY = {json.dumps(PROFILE_STORAGE_KEY)};
+          const PROGRESS_KEY = {json.dumps(PROGRESS_STORAGE_PREFIX)} + payload.profileId;
+          try {{
+            localStorage.setItem(ID_KEY, payload.profileId);
+            localStorage.setItem(PROGRESS_KEY, JSON.stringify(payload));
+          }} catch (_) {{}}
+          const url = new URL(window.parent.location.href);
+          url.searchParams.set("jack_id", payload.profileId);
+          url.searchParams.set("p_attempts", payload.attempts);
+          url.searchParams.set("p_score_sum", payload.scoreSum);
+          url.searchParams.set("p_best", payload.best);
+          window.parent.history.replaceState({{}}, "", url.toString());
+        }})();
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
+
+
 st.set_page_config(
     page_title="Jackの英語ジャッジ",
-    page_icon=str(JACK_ICON_PATH),
+    page_icon=str(APP_ICON_PATH),
     layout="centered",
     initial_sidebar_state="collapsed",
+)
+
+install_app_icon()
+profile_id = ensure_profile_id()
+if st.session_state.get("progress_profile_id") != profile_id:
+    st.session_state.progress_profile_id = profile_id
+    st.session_state.progress_attempts = safe_progress_int("p_attempts")
+    st.session_state.progress_score_sum = safe_progress_int("p_score_sum")
+    st.session_state.progress_best = min(10, safe_progress_int("p_best"))
+
+sync_profile_progress(
+    profile_id,
+    st.session_state.progress_attempts,
+    st.session_state.progress_score_sum,
+    st.session_state.progress_best,
 )
 
 st.markdown(
@@ -72,6 +203,14 @@ st.markdown(
     .brand-title { color: var(--ink); font-size: clamp(2rem, 8vw, 2.75rem); font-weight: 850;
         letter-spacing: -.045em; line-height: 1.08; }
     .brand-tagline { color: var(--pacific); font-size: .95rem; font-weight: 750; font-style: italic; letter-spacing: .02em; margin-bottom: .3rem; }
+    .profile-strip { display: grid; grid-template-columns: 1.35fr repeat(3, 1fr); gap: .55rem; margin: 1rem 0 .45rem; }
+    .profile-cell { padding: .72rem .76rem; border: 1px solid #c6dce6; border-radius: 14px;
+        background: rgba(255,255,255,.72); box-shadow: 0 5px 14px rgba(35,123,165,.06); }
+    .profile-kicker { display: block; color: #5e7380 !important; font-size: .65rem; font-weight: 850; letter-spacing: .08em; }
+    .profile-value { display: block; margin-top: .12rem; color: #173c5a !important; font-size: 1rem; font-weight: 900; }
+    .profile-cell:first-child { background: linear-gradient(145deg, #173c5a, #225f7e); border-color: #173c5a; }
+    .profile-cell:first-child .profile-kicker { color: #a9d8eb !important; }
+    .profile-cell:first-child .profile-value { color: #fff9ed !important; letter-spacing: .05em; }
     .prompt-card { padding: 1.55rem; border-radius: 22px; background: linear-gradient(145deg, #eaf7fb, #dff1f7);
         color: var(--ink); margin: 1rem 0 1.2rem; border: 1px solid #b9dce8; box-shadow: 0 10px 25px rgba(35, 123, 165, .10); }
     .prompt-label { font-size: .85rem; font-weight: 800; color: #286986; margin-bottom: .4rem; }
@@ -125,6 +264,8 @@ st.markdown(
         .brand-title { font-size: 1.65rem; line-height: 1.08; white-space: nowrap; }
         .app-name { font-size: .74rem; line-height: 1.3; padding: .16rem .42rem; margin-bottom: .28rem; }
         .jack-avatar { width: 54px; height: 54px; flex-basis: 54px; }
+        .profile-strip { grid-template-columns: repeat(3, 1fr); }
+        .profile-cell:first-child { grid-column: 1 / -1; }
         .prompt-card { padding: 1.2rem; border-radius: 17px; }
         .answer-card, .jack-card { padding: .9rem 1rem; }
     }
@@ -155,6 +296,35 @@ st.markdown(
 )
 st.markdown('<div class="brand-tagline">Keep it simple. Keep it real.</div>', unsafe_allow_html=True)
 st.caption("難しくしなくていい。シンプルで、本当に使える英語を。")
+
+attempts = st.session_state.progress_attempts
+average_score = (st.session_state.progress_score_sum / attempts) if attempts else 0
+profile_short = profile_id.removeprefix("EJ-")
+st.markdown(
+    f'<div class="profile-strip">'
+    f'<div class="profile-cell"><span class="profile-kicker">PRIVATE JACK ID</span>'
+    f'<span class="profile-value">{profile_short}</span></div>'
+    f'<div class="profile-cell"><span class="profile-kicker">JUDGED</span>'
+    f'<span class="profile-value">{attempts}</span></div>'
+    f'<div class="profile-cell"><span class="profile-kicker">AVERAGE</span>'
+    f'<span class="profile-value">{average_score:.1f}</span></div>'
+    f'<div class="profile-cell"><span class="profile-kicker">BEST</span>'
+    f'<span class="profile-value">{st.session_state.progress_best}</span></div>'
+    f'</div>',
+    unsafe_allow_html=True,
+)
+with st.expander("🔐 貴方のJack ID"):
+    st.caption("この端末だけの匿名IDです。回答数・平均点・ベストスコアをブラウザに保存します。")
+    st.code(profile_id, language=None)
+    if st.button("このIDの進捗をリセット", type="secondary"):
+        st.session_state.progress_attempts = 0
+        st.session_state.progress_score_sum = 0
+        st.session_state.progress_best = 0
+        st.query_params["p_attempts"] = "0"
+        st.query_params["p_score_sum"] = "0"
+        st.query_params["p_best"] = "0"
+        st.rerun()
+
 context_html = ""
 if question.get("context_ja"):
     context_html = f'<div class="prompt-context">場面：{question["context_ja"]}</div>'
@@ -188,6 +358,10 @@ if submitted:
             st.session_state.submitted_answer = answer
             with st.spinner("英語の自然さを判定中…"):
                 st.session_state.evaluation = evaluate_answer(question, answer)
+            score = st.session_state.evaluation.naturalness_score
+            st.session_state.progress_attempts += 1
+            st.session_state.progress_score_sum += score
+            st.session_state.progress_best = max(st.session_state.progress_best, score)
             st.rerun()
         except Exception:
             st.error("うまく判定できませんでした。少し時間をおいて、もう一度試してください。")
@@ -227,8 +401,7 @@ if evaluation:
     if (
         evaluation.needs_improvement
         and evaluation.natural_version.casefold() != evaluation.interpreted_answer.casefold()
-    ):
-        st.info(f"もっと自然に言うなら： **{evaluation.natural_version}**")
+    ):        st.info(f"もっと自然に言うなら： **{evaluation.natural_version}**")
 
     st.markdown(
         f'<div class="jack-card"><div class="jack-heading">'

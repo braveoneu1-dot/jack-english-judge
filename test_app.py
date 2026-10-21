@@ -146,6 +146,26 @@ class QuestionDatasetTests(unittest.TestCase):
         claude_evaluate.assert_called_once()
 
 
+class BrandingAndProfileTests(unittest.TestCase):
+    def test_ios_icon_and_static_serving_are_configured(self):
+        root = Path(__file__).parent
+        icon = root / "static" / "judge-app-icon.png"
+        config = (root / ".streamlit" / "config.toml").read_text(encoding="utf-8")
+        app_source = (root / "app.py").read_text(encoding="utf-8")
+
+        self.assertGreater(icon.stat().st_size, 10_000)
+        self.assertIn("enableStaticServing = true", config)
+        self.assertIn("apple-touch-icon", app_source)
+
+    def test_private_profile_and_progress_are_browser_persistent(self):
+        app_source = (Path(__file__).parent / "app.py").read_text(encoding="utf-8")
+
+        self.assertIn("jack_english_judge_profile_v1", app_source)
+        self.assertIn("jack_english_judge_progress_v1:", app_source)
+        self.assertIn("crypto.getRandomValues", app_source)
+        self.assertIn("progress_attempts", app_source)
+
+
 if __name__ == "__main__":
     unittest.main()
 
