@@ -162,7 +162,7 @@ class BrandingAndProfileTests(unittest.TestCase):
 
         self.assertIn("jack_english_judge_profile_v1", app_source)
         self.assertIn("jack_english_judge_progress_v1:", app_source)
-        self.assertIn("crypto.getRandomValues", app_source)
+        self.assertIn("secrets.token_hex", app_source)
         self.assertIn("progress_attempts", app_source)
 
 

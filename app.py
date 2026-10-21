@@ -1,6 +1,7 @@
 import json
 import base64
 import re
+import secrets
 from html import escape
 from pathlib import Path
 
@@ -90,46 +91,49 @@ def install_app_icon() -> None:
 
 
 def ensure_profile_id() -> str:
-    """Restore or create a private browser profile before showing the app."""
-    profile_id = str(st.query_params.get("jack_id", "")).strip().upper()
-    if PROFILE_ID_PATTERN.fullmatch(profile_id):
-        return profile_id
+    """Restore or create a private profile without requiring a login."""
+    query_id = str(st.query_params.get("jack_id", "")).strip().upper()
+    if PROFILE_ID_PATTERN.fullmatch(query_id):
+        return query_id
 
-    components.html(
-        f"""
-        <script>
-        (() => {{
-          const ID_KEY = {json.dumps(PROFILE_STORAGE_KEY)};
-          const PROGRESS_PREFIX = {json.dumps(PROGRESS_STORAGE_PREFIX)};
-          const valid = (value) => /^EJ-[A-F0-9]{{12}}$/.test(value || "");
-          const randomId = () => {{
-            const bytes = new Uint8Array(6);
-            crypto.getRandomValues(bytes);
-            return "EJ-" + Array.from(bytes, b => b.toString(16).padStart(2, "0"))
-              .join("").toUpperCase();
-          }};
-          let saved = "";
-          try {{ saved = localStorage.getItem(ID_KEY) || ""; }} catch (_) {{}}
-          const id = valid(saved) ? saved : randomId();
-          try {{ localStorage.setItem(ID_KEY, id); }} catch (_) {{}}
-          const url = new URL(window.parent.location.href);
-          url.searchParams.set("jack_id", id);
-          let progress = {{}};
-          try {{
-            progress = JSON.parse(localStorage.getItem(PROGRESS_PREFIX + id) || "{{}}");
-          }} catch (_) {{}}
-          url.searchParams.set("p_attempts", Math.max(0, Number(progress.attempts) || 0));
-          url.searchParams.set("p_score_sum", Math.max(0, Number(progress.scoreSum) || 0));
-          url.searchParams.set("p_best", Math.max(0, Number(progress.best) || 0));
-          window.parent.location.replace(url.toString());
-        }})();
-        </script>
-        """,
-        height=0,
-        width=0,
+    try:
+        cookie_id = str(st.context.cookies.get(PROFILE_STORAGE_KEY, "")).strip().upper()
+    except AttributeError:
+        cookie_id = ""
+
+    profile_id = (
+        cookie_id
+        if PROFILE_ID_PATTERN.fullmatch(cookie_id)
+        else f"EJ-{secrets.token_hex(6).upper()}"
     )
-    st.info("貴方専用のJack IDを準備しています…")
-    st.stop()
+    st.query_params["jack_id"] = profile_id
+    st.rerun()
+
+
+def load_saved_progress(profile_id: str) -> tuple[int, int, int]:
+    if any(name in st.query_params for name in ("p_attempts", "p_score_sum", "p_best")):
+        return (
+            safe_progress_int("p_attempts"),
+            safe_progress_int("p_score_sum"),
+            min(10, safe_progress_int("p_best")),
+        )
+
+    try:
+        raw_progress = str(st.context.cookies.get("jack_english_judge_progress_v1", ""))
+    except AttributeError:
+        raw_progress = ""
+
+    parts = raw_progress.split("|")
+    if len(parts) == 4 and parts[0] == profile_id:
+        try:
+            return (
+                max(0, int(parts[1])),
+                max(0, int(parts[2])),
+                min(10, max(0, int(parts[3]))),
+            )
+        except ValueError:
+            pass
+    return 0, 0, 0
 
 
 def sync_profile_progress(profile_id: str, attempts: int, score_sum: int, best: int) -> None:
@@ -146,16 +150,19 @@ def sync_profile_progress(profile_id: str, attempts: int, score_sum: int, best: 
           const payload = {json.dumps(payload)};
           const ID_KEY = {json.dumps(PROFILE_STORAGE_KEY)};
           const PROGRESS_KEY = {json.dumps(PROGRESS_STORAGE_PREFIX)} + payload.profileId;
+          const cookieOptions = "; path=/; max-age=31536000; SameSite=Lax; Secure";
+          document.cookie = ID_KEY + "=" + encodeURIComponent(payload.profileId) + cookieOptions;
+          document.cookie = "jack_english_judge_progress_v1=" +
+            encodeURIComponent([
+              payload.profileId,
+              payload.attempts,
+              payload.scoreSum,
+              payload.best
+            ].join("|")) + cookieOptions;
           try {{
             localStorage.setItem(ID_KEY, payload.profileId);
             localStorage.setItem(PROGRESS_KEY, JSON.stringify(payload));
           }} catch (_) {{}}
-          const url = new URL(window.parent.location.href);
-          url.searchParams.set("jack_id", payload.profileId);
-          url.searchParams.set("p_attempts", payload.attempts);
-          url.searchParams.set("p_score_sum", payload.scoreSum);
-          url.searchParams.set("p_best", payload.best);
-          window.parent.history.replaceState({{}}, "", url.toString());
         }})();
         </script>
         """,
@@ -174,10 +181,11 @@ st.set_page_config(
 install_app_icon()
 profile_id = ensure_profile_id()
 if st.session_state.get("progress_profile_id") != profile_id:
+    attempts, score_sum, best = load_saved_progress(profile_id)
     st.session_state.progress_profile_id = profile_id
-    st.session_state.progress_attempts = safe_progress_int("p_attempts")
-    st.session_state.progress_score_sum = safe_progress_int("p_score_sum")
-    st.session_state.progress_best = min(10, safe_progress_int("p_best"))
+    st.session_state.progress_attempts = attempts
+    st.session_state.progress_score_sum = score_sum
+    st.session_state.progress_best = best
 
 sync_profile_progress(
     profile_id,
@@ -362,6 +370,9 @@ if submitted:
             st.session_state.progress_attempts += 1
             st.session_state.progress_score_sum += score
             st.session_state.progress_best = max(st.session_state.progress_best, score)
+            st.query_params["p_attempts"] = str(st.session_state.progress_attempts)
+            st.query_params["p_score_sum"] = str(st.session_state.progress_score_sum)
+            st.query_params["p_best"] = str(st.session_state.progress_best)
             st.rerun()
         except Exception:
             st.error("うまく判定できませんでした。少し時間をおいて、もう一度試してください。")
