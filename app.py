@@ -86,6 +86,26 @@ def install_app_icon() -> None:
             };
             install("apple-touch-icon", "180x180");
             install("icon", "512x512");
+
+            let chromeStyle = doc.getElementById("jack-hide-streamlit-chrome");
+            if (!chromeStyle) {
+              chromeStyle = doc.createElement("style");
+              chromeStyle.id = "jack-hide-streamlit-chrome";
+              doc.head.appendChild(chromeStyle);
+            }
+            chromeStyle.textContent = \`
+              a[href="https://streamlit.io/cloud"],
+              a[href^="https://share.streamlit.io/user/"],
+              [data-testid="appCreatorAvatar"],
+              [class*="_viewerBadge"],
+              [class*="viewerBadge"],
+              [class*="_profileContainer"],
+              [class*="profileContainer"] {
+                display: none !important;
+                visibility: hidden !important;
+                pointer-events: none !important;
+              }
+            \`;
           });
         })();
         </script>
