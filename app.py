@@ -202,6 +202,19 @@ sync_profile_progress(
 st.markdown(
     """
     <style>
+    /* Hide Streamlit Community Cloud chrome; the app supplies its own UI. */
+    header[data-testid="stHeader"],
+    [data-testid="stToolbar"],
+    [data-testid="stDecoration"],
+    [data-testid="stStatusWidget"],
+    [data-testid="stAppDeployButton"],
+    #MainMenu,
+    footer,
+    [class*="viewerBadge"],
+    [class*="ViewerBadge"] {
+        display: none !important;
+        visibility: hidden !important;
+    }
     :root { --sunset: #f26b4f; --pacific: #237ba5; --sun: #f4bd3f; --cream: #fff9ed; --ink: #20303c; }
     .stApp { background: var(--cream); color: var(--ink); }
     .block-container { max-width: 720px; padding-top: 2.25rem; padding-bottom: 4rem; }
@@ -271,8 +284,7 @@ st.markdown(
     div.stFormSubmitButton > button:hover { background: #d9563e; color: white; border-color: #d9563e; }
     div[data-testid="stTextInput"] input { min-height: 3.1rem; border-radius: 12px; font-size: 1rem; }
     @media (max-width: 600px) {
-        /* Safari/Streamlit's mobile toolbar overlaps the top of the app. */
-        .block-container { padding: 3.25rem 1rem 3rem; }
+        .block-container { padding: 1.25rem 1rem 3rem; }
         h1 { font-size: 2.05rem !important; }
         .brand-header { gap: .55rem; align-items: center; }
         .brand-icon { width: 52px; height: 52px; flex-basis: 52px; }
